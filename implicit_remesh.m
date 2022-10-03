@@ -22,13 +22,16 @@ Vg = Vg - corner;
 
 %Deposit signed distance on the grid
 signedD = signed_distance(V, E, Vg);
-
+s =  reshape(signedD, [nx, ny]);
+[Ngx, Ngy] = gradient(s);
+Ng = [Ngx(:) Ngy(:)];
+Ng = Ng ./ vecnorm(Ng')';
 if method == "ms"
     [V2, E2] = marching_squares(signedD, Vg, Fg, iso_value);
 elseif method == "dc"
-    [BC, N, E] = edge_centers_and_normals(V, F);
-    W_edges = fd_bilinear_coefficients(min(Vg), max(Vg), [nx, ny], BC);
-    Ng = W_edges' * N;
+    %[BC, N, E] = edge_centers_and_normals(V, F);
+   % W_edges = fd_bilinear_coefficients(min(Vg), max(Vg), [nx, ny], BC);
+   % Ng = W_edges' * N;
     [V2, E2,  Vg_dc, N_dc, Eg_dc] = dual_contouring(signedD, Ng, Vg, Fg, iso_value, alpha);
 else
     disp("Contouring Method not Implemented Yet");

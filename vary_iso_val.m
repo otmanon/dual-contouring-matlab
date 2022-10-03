@@ -1,18 +1,31 @@
 close all;
 clear;
 
-[V, F] = readOBJ("data\fly.obj");
+[V, F] = readOBJ("data\cthulu.obj");
 V = V(:, 1:2);
 
+step = 1;
+num_iso = 10;
+alpha = 10;
 
-[V2, E2] = implicit_remesh(V, F, 1e-2, 0, 'dc', 100, 10);
-plot_edges(V2, E2, 'LineWidth', 2, 'Color', 'black');
+E = boundary_faces(F);
+l = edge_lengths(V, E);
+h = max(l)/2;
+
+step = step*h;
+
+
+
+t = tsurf(F, V);
+t.FaceColor = [144, 210, 236]/255;
+t.EdgeAlpha = 0;
 hold on;
 axis equal;
-% 
-% [V2, E2] = implicit_remesh(V, F, 1e-2, 5e-2, 'ms', 1, 2);
-% plot_edges(V2, E2, 'LineWidth', 2, 'Color', 'black');
-
+grid off;
+for i=1:num_iso
+    [V2, E2] = implicit_remesh(V, F, h, (i-1)*step, 'ms', alpha, 2);
+    plot_edges(V2, E2, 'LineWidth', 2, 'Color', 'black');
+end
 % [V2, E2] = implicit_remesh(V, F, 1e-2, 1e-1, 'ms', 1, 2);
 % plot_edges(V2, E2, 'LineWidth', 2, 'Color', 'black');
 % 

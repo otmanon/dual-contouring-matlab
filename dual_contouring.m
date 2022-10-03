@@ -1,55 +1,57 @@
-[V, F] = readOBJ("data\fly.obj");
-V = V(:, 1:2);
+function [V, E, V_temp, N_temp, E_temp] = dual_contouring(signedD, Ng, Vg, Fg, iso_value, alpha)
+%DUAL_CONTOURING Summary of this function goes here
+%   Detailed explanation goes here
+Eg = quad_edges(Fg);
 
-h = 1e-1
-removeI = faceCutI(:, 1) < 0;
-faceCutI = faceCutI(~removeI, :)
-;
-diffV = max(V) - min(V);
-padding = 2;
-nx = ceil(diffV(1)/h) + padding + 1; % number of vertices in x
-ny = ceil(diffV(2)/h) + padding + 1; % number of vertices in y
+% edges with a sign flip
+bI = boundary_cells(Fg, signedD, iso_value);
 
-[Vg, Fg] = create_regular_quad_grid(nx, ny);
+bIe = boundary_cells(Eg, signedD, iso_value);
 
-Vg = Vg .* ((max(V) - min(V)) + padding*h);
-corner = min(Vg) - min(V) + padding*h/2;
-Vg = Vg - corner;
-
-
-[BC, N, E] = edge_centers_and_normals(V, F);
-W_edges = fd_bilinear_coefficients(min(Vg), max(Vg), [nx, ny], BC);
-Ng = W_edges' * N;
-
-
-%Deposit signed distance on the grid
-signedD = signed_distance(V, E, Vg);
-W = fd_bilinear_coefficients(min(Vg), max(Vg), [nx, ny], V);
-
-[P_iso, E_iso] = marching_squares(signedD, Vg, Fg, iso_val);
-%
-
-%What we want:
-% A quad face list with index1 indexing P_iso, and index1 indexing P_iso as
-% well, connecting them via a line. 
-bI = boundary_cells(Fg, signedD);
+%Find where the sign flip occurs using linear interpolation
+BE = Eg(bIe, :);
 
 
 
-d = zeros(size(Fg, 1), 1);
-d(bI) = 1;
-%% Draw SDF and Normals
-hold on;
+D = signedD(BE);
+diffD = abs(D(:, 2) - D(:, 1));
+s1 = abs(iso_value - D(:, 2)) ./ diffD ;
+s2 =  abs(iso_value - D(:, 1)) ./ diffD;
+V_temp = Vg(BE(:, 1), :) .* s1 + Vg(BE(:, 2), :) .* s2;
+N_temp = Ng(BE(:, 1), :) .* s1 + Ng(BE(:, 2), :) .* s2;
+N_temp = N_temp ./ vecnorm(N_temp')';
+%N_temp =
+Fb = Fg(bI, :);
+QE = quad_edge_adjacency(Fb, BE);
 
-%quiver(BC(:, 1), BC(:,2 ), N(:, 1), N(:, 2)); %Draw edge normals
-%scatter(Vg(:,1), Vg(:, 2), [],  signedD, 'filled'); %Draw SDF
-%quiver(Vg(:, 1), Vg(:,2 ), Ng(:, 1), Ng(:, 2), 'red'); %Draw normals
-colorbar;
-tsurf(Fg, Vg, "CData", signedD, fphong);
+X = [];
 
-%quiver(P_iso(:, 1), P_iso(:, 2), N_iso(:, 1), N_iso(:,2));
-tsurf(F, V); %Draw base mesh
-plot_edges(P_iso, E_iso, 'LineWidth', 2, 'Color', 'black');
-scatter(P_iso(:, 1), P_iso(:, 2), 'filled');
-title("Marching Squares")
-%plot_edges(X, Eg)
+C = grid_cell_centers(Fb, Vg);
+for i=1:size(QE, 1)
+    %for each quad
+    %get all the normals
+    A = [];
+    b = [];
+    for j=1:size(QE, 2)
+        %We form an A matrix of normals
+        if (QE(i, j) > 0)  %Some entries may be -1, meaning no edge belongs to that cell
+            A = [A; N_temp(QE(i, j), :)];
+            b = [b; N_temp(QE(i, j), :)*V_temp(QE(i, j), :)'];
+        end;
+    end
+    H = A'*A + alpha * eye(2);
+    B = A'*b + alpha * C(i, :)';
+    x = H\B;
+    X = [X; x'];
+     
+end
+
+% X = 0.25*(Vg(Fb(:, 1), :) + Vg(Fb(:, 2), :) +  Vg(Fb(:, 3), :) + Vg(Fb(:, 4), :)); 
+        
+V = X;
+E = edge_quad_adjacency(Fb, BE);
+
+
+E_temp = quad_edge_adjacency(Fb, BE);
+end
+

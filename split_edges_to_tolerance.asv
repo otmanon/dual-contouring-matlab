@@ -1,0 +1,15 @@
+function [V2, F2] = split_edges_to_tolerance(V, F,  tol)
+%SPLIT_EDGES_TO_TOLERANCE Summary of this function goes here
+%   Detailed explanation goes here
+E = boundary_faces(F);
+l = edge_lengths(V, E);
+V2 = [];
+E2 = [];
+while max(l) > tol
+    ind = find(l > tol);
+    [V2, F2] = split_edges(V, F, E(ind, :));
+
+    E = boundary_faces(F);
+    l = edge_lengths(V, E);
+end
+

@@ -5,7 +5,7 @@ Eg = quad_edges(Fg);
 
 % edges with a sign flip
 bIe = boundary_cells(Eg, signedD, iso_val);
-bI = boundary_cells(Fg, signedD, iso_val);
+bI = boundary_cells
 %Find where the sign flip occurs using linear interpolation
 BE = Eg(bIe, :);
 BEQ = edge_quad_adjacency(Fg, BE);

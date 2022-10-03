@@ -1,10 +1,9 @@
 function QE = quad_edge_adjacency(F,E)
 %QUAD_EDGE_ADJACENCY For each quad, give the 1-4 edge indices of the edges
-%given in E. If the edges E do not fully describe the 4 edges in the quads
-%of F, the missing values are marked with -1
+%given in E. If the edges E do not fully describ
 EQ = edge_quad_adjacency(F, E);
 [GC, GR] = groupcounts(EQ(:));
-[max_val, max_ind] = max(GC);
+[max_val, max_ind] = max(GC)
 num_e = max_val;
 if (GR(max_ind) == -1)
     GC(max_ind) = -1;

@@ -23,15 +23,68 @@ Ng = W_edges' * N;
 signedD = signed_distance(V, E, Vg);
 W = fd_bilinear_coefficients(min(Vg), max(Vg), [nx, ny], V);
 
-Eg = quad_edges(Fg);
+Eg = edges(Fg);
+A = edge_quad_adjacency(Fg, Eg);
 
+% edges with a sign flip
+bIe = boundary_cells(Eg, signedD);
+
+%Find where the sign flip occurs using linear interpolation
+BE = Eg(bIe, :);
+BEQ = edge_quad_adjacency(Fg, BE);
+
+iso_val = 0;
+
+D = signedD(BE);
+diffD = abs(D(:, 2) - D(:, 1));
+s1 = abs(iso_val - D(:, 2)) ./ diffD ;
+s2 =  abs(iso_val - D(:, 1)) ./ diffD;
+P_iso = Vg(BE(:, 1), :) .* s1 + Vg(BE(:, 2), :) .* s2;
+N_iso = Ng(BE(:, 1), :) .* s1 + Ng(BE(:, 2), :) .* s2;
+
+faceCutI = - ones(size(Fg, 1), 2); 
+
+% How do we find the two values of P_iso that belong to an arbitrary quad
+% face? 
+% We can map the points to each of the two faces that belong to them. 
+for i=1:size(BEQ, 1)
+    % for each edge, find the two quads that are adjacent to it
+    if (BEQ(i, 1) >= 0)
+        if(faceCutI(BEQ(i, 1), 1) < 0)
+            faceCutI(BEQ(i, 1), 1) = i;
+        elseif (faceCutI(BEQ(i, 1), 2)) < 0
+            faceCutI(BEQ(i, 1), 2) = i;
+        end
+    end
+    if (BEQ(i, 2) >= 0)
+        if(faceCutI(BEQ(i, 2), 1) < 0)
+            faceCutI(BEQ(i, 2), 1) = i;
+        elseif (faceCutI(BEQ(i, 2), 2)) < 0
+            faceCutI(BEQ(i, 2), 2) = i;
+        end
+    end
+end
+removeI = faceCutI(:, 1) < 0;
+faceCutI = faceCutI(~removeI, :)
+
+%What we want:
+% A quad face list with index1 indexing P_iso, and index1 indexing P_iso as
+% well, connecting them via a line. 
+bI = boundary_cells(Fg, signedD);
+
+
+
+d = zeros(size(Fg, 1), 1);
+d(bI) = 1;
 %% Draw SDF and Normals
 hold on;
 tsurf(F, V); %Draw base mesh
 %quiver(BC(:, 1), BC(:,2 ), N(:, 1), N(:, 2)); %Draw edge normals
 scatter(Vg(:,1), Vg(:, 2), [],  signedD, 'filled'); %Draw SDF
-%quiver(X(:, 1), X(:,2 ), Ng(:, 1), Ng(:, 2), 'red'); %Draw normals
+quiver(Vg(:, 1), Vg(:,2 ), Ng(:, 1), Ng(:, 2), 'red'); %Draw normals
 colorbar;
 tsurf(Fg, Vg, "CData", signedD, fphong);
+scatter(P_iso(:, 1), P_iso(:, 2), 'filled');
+quiver(P_iso(:, 1), P_iso(:, 2), N_iso(:, 1), N_iso(:,2));
 
 %plot_edges(X, Eg)
